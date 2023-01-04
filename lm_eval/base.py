@@ -342,27 +342,41 @@ class BaseLM(LM):
 
         re_ord = utils.Reorderer(requests, _collate)
 
-        for context, until in tqdm(re_ord.get_reordered()):
+        # TODO: Requests should probably be in dict format, not tuple.
+        for context, until, *max_length in tqdm(re_ord.get_reordered()):
             if isinstance(until, str):
                 until = [until]
 
-            (primary_until,) = self.tok_encode(until[0])
+            if until is not None:
+                (primary_until,) = self.tok_encode(until[0])
+            else:
+                primary_until = None
 
             context_enc = torch.tensor(
                 [self.tok_encode(context)[self.max_gen_toks - self.max_length :]]
             ).to(self.device)
 
+            if max_length:
+                if len(max_length) > 1:
+                    raise ValueError(
+                        f"Extra args supplied to requests: {max_length[1:]}"
+                    )
+                max_length = context_enc.shape[1] + max_length[0]
+            else:
+                max_length = context_enc.shape[1] + self.max_gen_toks
+
             cont = self._model_generate(
-                context_enc, context_enc.shape[1] + self.max_gen_toks, primary_until
+                context_enc, max_length, primary_until
             )
 
             s = self.tok_decode(cont[0].tolist()[context_enc.shape[1] :])
 
-            for term in until:
-                s = s.split(term)[0]
+            if until is not None:
+                for term in until:
+                    s = s.split(term)[0]
 
             # partial caching
-            self.cache_hook.add_partial("greedy_until", (context, until), s)
+            self.cache_hook.add_partial("greedy_until", (context, until, max_length), s)
 
             res.append(s)
 
