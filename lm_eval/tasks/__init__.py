@@ -51,6 +51,7 @@ from . import asdiv
 from . import gsm8k
 from . import storycloze
 from . import cnn_dailymail
+from . import raft
 
 ########################################
 # Translation tasks
@@ -284,6 +285,8 @@ TASK_REGISTRY = {
     "blimp_wh_vs_that_with_gap_long_distance": blimp.BlimpWhVsThatWithGapLongDistance,
     # summarization
     "cnn_dailymail": cnn_dailymail.CNNDailyMailGen,
+    # RAFT
+    **raft.create_tasks(),
     # Requires manual download of data.
     # "storycloze_2016": storycloze.StoryCloze2016,
     # "storycloze_2018": storycloze.StoryCloze2018,
